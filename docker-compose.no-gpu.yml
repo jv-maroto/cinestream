@@ -1,0 +1,145 @@
+# Docker Compose para CineStream SIN GPU
+# Usa este archivo si no tienes GPU NVIDIA: docker-compose -f docker-compose.no-gpu.yml up -d
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: cine-analyzer-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cineanalyzer}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5433:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-cineanalyzer}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cine-analyzer-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: cine-analyzer-redis
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - "6380:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cine-analyzer-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cine-analyzer-backend
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-cineanalyzer}
+      - REDIS_URL=redis://redis:6379/0
+      - YOLO_API_URL=http://localhost:8011
+      - CLASSIFIER_API_URL=http://localhost:8013
+      - MEDIA_PATH=/media
+      - THUMBNAILS_PATH=/data/thumbnails
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
+      - TMDB_API_KEY=${TMDB_API_KEY:-}
+      - ENABLE_SCENE_CLASSIFICATION=false
+      - ENABLE_OBJECT_DETECTION=false
+    volumes:
+      - ${MEDIA_PATH:-D:/}:/media:ro
+      - ./data:/data
+    ports:
+      - "8010:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - cine-analyzer-net
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cine-analyzer-worker
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-cineanalyzer}
+      - REDIS_URL=redis://redis:6379/0
+      - YOLO_API_URL=http://localhost:8011
+      - CLASSIFIER_API_URL=http://localhost:8013
+      - MEDIA_PATH=/media
+      - THUMBNAILS_PATH=/data/thumbnails
+      - TMDB_API_KEY=${TMDB_API_KEY:-}
+      - ENABLE_SCENE_CLASSIFICATION=false
+      - ENABLE_OBJECT_DETECTION=false
+    volumes:
+      - ${MEDIA_PATH:-D:/}:/media:ro
+      - ./data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    networks:
+      - cine-analyzer-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8010}
+    container_name: cine-analyzer-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - cine-analyzer-net
+
+networks:
+  cine-analyzer-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

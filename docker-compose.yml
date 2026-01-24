@@ -1,0 +1,209 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: cine-analyzer-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cineanalyzer}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5433:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-cineanalyzer}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cine-analyzer-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: cine-analyzer-redis
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - "6380:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - cine-analyzer-net
+
+  yolo-api:
+    build:
+      context: ./ai-services/yolo-api
+      dockerfile: Dockerfile
+    container_name: cine-analyzer-yolo
+    environment:
+      - MODEL_TYPE=${YOLO_MODEL:-yolov8x}
+      - DEVICE=0
+      - BATCH_SIZE=8
+      - CONF_THRESHOLD=0.25
+    volumes:
+      - ./data/models:/models
+    ports:
+      - "8011:8000"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - cine-analyzer-net
+
+  classifier-api:
+    build:
+      context: ./ai-services/classifier-api
+      dockerfile: Dockerfile
+    container_name: cine-analyzer-classifier
+    environment:
+      - MODEL_NAME=openai/clip-vit-large-patch14
+      - DEVICE=cuda
+      - BATCH_SIZE=16
+    volumes:
+      - ./data/models/clip:/models
+    ports:
+      - "8013:8000"
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - cine-analyzer-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cine-analyzer-backend
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-cineanalyzer}
+      - REDIS_URL=redis://redis:6379/0
+      - YOLO_API_URL=http://yolo-api:8000
+      - CLASSIFIER_API_URL=http://classifier-api:8000
+      - MEDIA_PATH=/media
+      - THUMBNAILS_PATH=/data/thumbnails
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3001}
+      - TMDB_API_KEY=${TMDB_API_KEY:-}
+    volumes:
+      - D:/:/media:ro
+      - ./data:/data
+    ports:
+      - "8010:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      yolo-api:
+        condition: service_started
+      classifier-api:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - cine-analyzer-net
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cine-analyzer-worker
+    command: celery -A app.workers.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-cineanalyzer}
+      - REDIS_URL=redis://redis:6379/0
+      - YOLO_API_URL=http://yolo-api:8000
+      - CLASSIFIER_API_URL=http://classifier-api:8000
+      - MEDIA_PATH=/media
+      - THUMBNAILS_PATH=/data/thumbnails
+      - TMDB_API_KEY=${TMDB_API_KEY:-}
+    volumes:
+      - D:/:/media:ro
+      - ./data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      yolo-api:
+        condition: service_started
+      classifier-api:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    networks:
+      - cine-analyzer-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8010}
+    container_name: cine-analyzer-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - cine-analyzer-net
+
+networks:
+  cine-analyzer-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

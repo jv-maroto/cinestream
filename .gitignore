@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.venv/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.local
+
+# Data & Logs
+data/
+logs/
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# Media files
+*.mp4
+*.mkv
+*.avi
+*.mov
+thumbnails/
+photos/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+pgdata/
+
+# Temp
+tmp/
+temp/
+nul
