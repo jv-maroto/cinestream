@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Film, Tv, Users, List, Settings, Sparkles, FileVideo, Search, Bell, X, ChevronRight } from 'lucide-react'
+import { Home, Film, Tv, Users, List, Settings, Sparkles, FileVideo, Search, Bell, X, ChevronRight, Command } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { queueApi } from '@/services/api'
@@ -12,8 +12,10 @@ export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const notificationRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const { data: queueStatus } = useQuery({
     queryKey: ['queue-status'],
@@ -31,6 +33,22 @@ export default function Layout({ children }: LayoutProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Ctrl+K to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+      if (e.key === 'Escape') {
+        searchInputRef.current?.blur()
+        setSearchFocused(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const isActive = (path: string) => {
     if (path.includes('?')) {
       return location.pathname + location.search === path
@@ -44,6 +62,7 @@ export default function Layout({ children }: LayoutProps) {
     e.preventDefault()
     if (searchQuery.trim()) {
       navigate(`/library?search=${encodeURIComponent(searchQuery)}`)
+      searchInputRef.current?.blur()
     }
   }
 
@@ -53,66 +72,76 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-dark-bg">
       {/* Top Header */}
-      <header className="fixed top-0 left-60 right-0 h-16 bg-dark-bg/90 backdrop-blur-md border-b border-dark-border z-40 flex items-center px-6">
-        <form onSubmit={handleSearch} className="flex-1 max-w-lg">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+      <header className="fixed top-0 left-60 right-0 h-14 bg-dark-surface/80 backdrop-blur-xl z-40 flex items-center px-6 gap-4">
+        {/* Search */}
+        <form onSubmit={handleSearch} className="flex-1 max-w-xl">
+          <div className="relative group">
+            <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 transition-colors ${searchFocused ? 'text-primary' : 'text-gray-600'}`} size={16} />
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar películas, series, anime..."
-              className="w-full bg-dark-card border border-dark-border rounded-full pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              placeholder="Buscar contenido..."
+              className="w-full bg-dark-bg/60 border border-dark-border/40 rounded-lg pl-10 pr-16 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 focus:bg-dark-bg transition-all"
             />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-gray-600 pointer-events-none">
+              <kbd className="text-[10px] bg-dark-bg/80 border border-dark-border/50 rounded px-1.5 py-0.5 font-mono">
+                <Command size={10} className="inline -mt-0.5" />K
+              </kbd>
+            </div>
           </div>
         </form>
 
-        <div className="flex items-center gap-3 ml-6">
+        {/* Right side */}
+        <div className="flex items-center gap-2">
           {/* Notifications */}
           <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 hover:bg-dark-hover rounded-full transition-colors"
+              className={`relative p-2 rounded-lg transition-colors ${showNotifications ? 'bg-dark-hover text-white' : 'text-gray-500 hover:bg-dark-hover hover:text-gray-300'}`}
               aria-label="Notificaciones"
             >
-              <Bell size={20} className="text-gray-400 hover:text-white" />
+              <Bell size={18} />
               {processingCount > 0 && (
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full ring-2 ring-dark-surface" />
               )}
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-dark-card border border-dark-border rounded-xl shadow-2xl overflow-hidden z-50">
-                <div className="p-4 border-b border-dark-border flex items-center justify-between">
-                  <h3 className="font-semibold">Notificaciones</h3>
-                  <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-dark-hover rounded-full">
-                    <X size={16} className="text-gray-400" />
+              <div className="absolute right-0 top-full mt-2 w-80 bg-dark-surface border border-dark-border/50 rounded-xl shadow-2xl shadow-black/40 overflow-hidden z-50">
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-300">Notificaciones</span>
+                  <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-dark-hover rounded-lg">
+                    <X size={14} className="text-gray-500" />
                   </button>
                 </div>
-                <div className="max-h-80 overflow-y-auto">
+                <div className="border-t border-dark-border/30">
                   {processingCount > 0 ? (
-                    <div className="p-4 border-b border-dark-border hover:bg-dark-hover">
+                    <div className="px-4 py-3 hover:bg-dark-hover/50 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <Film size={18} className="text-primary" />
+                        <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                          <Film size={14} className="text-primary" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">Procesando archivos</p>
-                          <p className="text-xs text-gray-400">{processingCount} en cola</p>
+                          <p className="text-sm text-white">Procesando archivos</p>
+                          <p className="text-xs text-gray-500">{processingCount} en cola</p>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="p-8 text-center text-gray-500">
-                      <Bell size={32} className="mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">Sin notificaciones</p>
+                    <div className="py-8 text-center">
+                      <Bell size={24} className="mx-auto mb-2 text-gray-700" />
+                      <p className="text-xs text-gray-600">Todo al día</p>
                     </div>
                   )}
                 </div>
                 <Link
                   to="/queue"
                   onClick={() => setShowNotifications(false)}
-                  className="block p-3 text-center text-sm text-primary hover:bg-dark-hover border-t border-dark-border"
+                  className="block px-4 py-2.5 text-center text-xs text-primary hover:bg-dark-hover/50 border-t border-dark-border/30 transition-colors"
                 >
                   Ver cola completa
                 </Link>
@@ -120,158 +149,140 @@ export default function Layout({ children }: LayoutProps) {
             )}
           </div>
 
-          {/* User Avatar */}
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-pink-600 flex items-center justify-center text-sm font-bold">
+          {/* Settings shortcut */}
+          <Link
+            to="/settings"
+            className={`p-2 rounded-lg transition-colors ${isActive('/settings') ? 'bg-dark-hover text-white' : 'text-gray-500 hover:bg-dark-hover hover:text-gray-300'}`}
+            aria-label="Ajustes"
+          >
+            <Settings size={18} />
+          </Link>
+
+          {/* Avatar */}
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-pink-600 flex items-center justify-center text-xs font-bold ml-1 cursor-default">
             U
           </div>
         </div>
       </header>
 
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-60 bg-dark-surface border-r border-dark-border z-50 flex flex-col">
+      <aside className="fixed left-0 top-0 h-full w-60 bg-dark-surface z-50 flex flex-col">
         {/* Logo */}
-        <div className="p-5">
+        <div className="h-14 flex items-center px-5 border-b border-dark-border/30">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-              <Film size={22} className="text-white" />
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-pink-600 rounded-lg flex items-center justify-center">
+              <Film size={16} className="text-white" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-white tracking-tight">CineStream</h1>
-              <p className="text-[10px] text-gray-500 -mt-0.5">Tu cine en casa</p>
-            </div>
+            <span className="text-base font-bold text-white tracking-tight">CineStream</span>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 pb-4">
-          {/* Home */}
-          <div className="mb-1">
+        <nav className="flex-1 overflow-y-auto px-3 pt-4 pb-4">
+          {/* Main */}
+          <div className="space-y-0.5 mb-5">
             <Link
               to="/"
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
                 isActive('/')
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-300'
               }`}
             >
-              <Home size={20} />
-              <span className="font-medium">Inicio</span>
+              <Home size={18} />
+              <span className="text-sm font-medium">Inicio</span>
             </Link>
-          </div>
 
-          {/* Biblioteca section */}
-          <div className="mb-1">
             <Link
               to="/library"
-              className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
                 isLibrarySection && !location.search
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-300'
               }`}
             >
               <div className="flex items-center gap-3">
-                <Film size={20} />
-                <span className="font-medium">Biblioteca</span>
+                <Film size={18} />
+                <span className="text-sm font-medium">Biblioteca</span>
               </div>
-              <ChevronRight size={16} className="opacity-40" />
+              <ChevronRight size={14} className="opacity-30" />
             </Link>
           </div>
 
-          {/* Category quick filters */}
-          <div className="ml-4 pl-4 border-l border-dark-border/50 mb-6 space-y-0.5">
+          {/* Categories - indented */}
+          <div className="ml-5 pl-3 border-l border-dark-border/30 mb-5 space-y-0.5">
             {[
-              { path: '/library?type=movie', icon: Film, label: 'Películas', color: 'text-blue-400', activeBg: 'bg-blue-500/10' },
-              { path: '/library?type=series', icon: Tv, label: 'Series', color: 'text-purple-400', activeBg: 'bg-purple-500/10' },
-              { path: '/library?type=anime', icon: Sparkles, label: 'Anime', color: 'text-pink-400', activeBg: 'bg-pink-500/10' },
-              { path: '/library?type=documentary', icon: FileVideo, label: 'Documentales', color: 'text-green-400', activeBg: 'bg-green-500/10' },
+              { path: '/library?type=movie', icon: Film, label: 'Películas', dot: 'bg-blue-400' },
+              { path: '/library?type=series', icon: Tv, label: 'Series', dot: 'bg-purple-400' },
+              { path: '/library?type=anime', icon: Sparkles, label: 'Anime', dot: 'bg-pink-400' },
+              { path: '/library?type=documentary', icon: FileVideo, label: 'Documentales', dot: 'bg-green-400' },
             ].map((item) => {
-              const Icon = item.icon
               const active = isActive(item.path)
               return (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm ${
+                  className={`flex items-center gap-3 px-3 py-1.5 rounded-lg transition-all text-[13px] ${
                     active
-                      ? `${item.activeBg} ${item.color}`
-                      : 'text-gray-500 hover:bg-dark-hover hover:text-gray-300'
+                      ? 'text-white bg-white/[0.06]'
+                      : 'text-gray-600 hover:text-gray-400 hover:bg-white/[0.03]'
                   }`}
                 >
-                  <Icon size={15} className={active ? item.color : ''} />
+                  <div className={`w-1.5 h-1.5 rounded-full ${active ? item.dot : 'bg-gray-700'}`} />
                   <span>{item.label}</span>
                 </Link>
               )
             })}
           </div>
 
-          {/* Divider */}
-          <div className="h-px bg-dark-border/50 mx-3 mb-4" />
-
-          {/* Secondary items */}
+          {/* Secondary */}
           <div className="space-y-0.5">
             <Link
               to="/actors"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
                 location.pathname.startsWith('/actors')
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-300'
               }`}
             >
               <Users size={18} />
-              <span className="text-sm">Actores</span>
+              <span className="text-sm font-medium">Actores</span>
             </Link>
 
             <Link
               to="/queue"
-              className={`flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${
+              className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${
                 isActive('/queue')
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-300'
               }`}
             >
               <div className="flex items-center gap-3">
                 <List size={18} />
-                <span className="text-sm">Cola</span>
+                <span className="text-sm font-medium">Cola</span>
               </div>
               {processingCount > 0 && (
-                <span className="text-[10px] font-bold bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded">
                   {processingCount}
                 </span>
               )}
               {errorCount > 0 && processingCount === 0 && (
-                <span className="text-[10px] font-bold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">
                   {errorCount}
                 </span>
               )}
-            </Link>
-
-            <Link
-              to="/settings"
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
-                isActive('/settings')
-                  ? 'bg-primary/10 text-primary'
-                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
-              }`}
-            >
-              <Settings size={18} />
-              <span className="text-sm">Ajustes</span>
             </Link>
           </div>
         </nav>
 
         {/* Footer */}
-        <div className="p-3">
-          <div className="rounded-xl bg-dark-card/50 px-4 py-3">
-            <div className="flex items-center justify-between text-[11px] text-gray-600">
-              <span>TMDB + AI</span>
-              <span>v1.0</span>
-            </div>
-          </div>
+        <div className="px-5 py-3 border-t border-dark-border/20">
+          <p className="text-[10px] text-gray-700">CineStream v1.0</p>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="ml-60 pt-16 min-h-screen">
+      <main className="ml-60 pt-14 min-h-screen">
         <div className="p-6">{children}</div>
       </main>
     </div>
