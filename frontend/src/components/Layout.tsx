@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Film, Tv, Users, Tag, List, Settings, Sparkles, FileVideo, Search, Bell, X } from 'lucide-react'
+import { Home, Film, Tv, Users, List, Settings, Sparkles, FileVideo, Search, Bell, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { queueApi } from '@/services/api'
@@ -45,7 +45,6 @@ export default function Layout({ children }: LayoutProps) {
 
   const secondaryNavItems = [
     { path: '/actors', icon: Users, label: 'Actores' },
-    { path: '/genres', icon: Tag, label: 'Géneros' },
     { path: '/queue', icon: List, label: 'Cola' },
     { path: '/settings', icon: Settings, label: 'Ajustes' },
   ]

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { statsApi, mediaApi, seriesApi, animeApi, watchHistoryApi } from '@/services/api'
-import { Film, Tv, Users, Clock, Play, Star, ChevronLeft, ChevronRight, Sparkles, FileVideo, HardDrive, RotateCcw, Info, Plus } from 'lucide-react'
+import { Film, Tv, Clock, Play, Star, ChevronLeft, ChevronRight, Sparkles, FileVideo, HardDrive, RotateCcw, Info, Plus } from 'lucide-react'
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { getImageUrl } from '@/utils/imageUrl'
 
@@ -362,72 +362,41 @@ export default function Home() {
       {featuredItem && <HeroSection item={featuredItem} />}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-        <div className="card p-4 bg-gradient-to-br from-blue-500/10 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/20">
-              <Film size={20} className="text-blue-400" />
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Películas</p>
-              <p className="text-xl font-bold">{stats?.movies || 0}</p>
-            </div>
-          </div>
+      <div className="flex items-center gap-6 mb-8 px-1 overflow-x-auto scrollbar-hide">
+        <Link to="/library?type=movie" className="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors whitespace-nowrap">
+          <Film size={16} className="text-blue-400" />
+          <span className="font-bold text-white">{stats?.movies || 0}</span>
+          <span className="text-sm">Películas</span>
+        </Link>
+        <span className="text-dark-border">|</span>
+        <Link to="/library?type=series" className="flex items-center gap-2 text-gray-400 hover:text-purple-400 transition-colors whitespace-nowrap">
+          <Tv size={16} className="text-purple-400" />
+          <span className="font-bold text-white">{stats?.series || 0}</span>
+          <span className="text-sm">Series</span>
+        </Link>
+        <span className="text-dark-border">|</span>
+        <Link to="/library?type=anime" className="flex items-center gap-2 text-gray-400 hover:text-pink-400 transition-colors whitespace-nowrap">
+          <Sparkles size={16} className="text-pink-400" />
+          <span className="font-bold text-white">{stats?.anime || 0}</span>
+          <span className="text-sm">Anime</span>
+        </Link>
+        <span className="text-dark-border">|</span>
+        <Link to="/library?type=documentary" className="flex items-center gap-2 text-gray-400 hover:text-green-400 transition-colors whitespace-nowrap">
+          <FileVideo size={16} className="text-green-400" />
+          <span className="font-bold text-white">{stats?.documentaries || 0}</span>
+          <span className="text-sm">Docs</span>
+        </Link>
+        <span className="text-dark-border">|</span>
+        <div className="flex items-center gap-2 text-gray-400 whitespace-nowrap">
+          <Clock size={16} className="text-yellow-400" />
+          <span className="font-bold text-white">{stats?.total_hours || 0}</span>
+          <span className="text-sm">Horas</span>
         </div>
-        <div className="card p-4 bg-gradient-to-br from-purple-500/10 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-500/20">
-              <Tv size={20} className="text-purple-400" />
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Series</p>
-              <p className="text-xl font-bold">{stats?.series || 0}</p>
-            </div>
-          </div>
-        </div>
-        <div className="card p-4 bg-gradient-to-br from-pink-500/10 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-pink-500/20">
-              <Sparkles size={20} className="text-pink-400" />
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Anime</p>
-              <p className="text-xl font-bold">{stats?.anime || 0}</p>
-            </div>
-          </div>
-        </div>
-        <div className="card p-4 bg-gradient-to-br from-green-500/10 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-500/20">
-              <FileVideo size={20} className="text-green-400" />
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Documentales</p>
-              <p className="text-xl font-bold">{stats?.documentaries || 0}</p>
-            </div>
-          </div>
-        </div>
-        <div className="card p-4 bg-gradient-to-br from-yellow-500/10 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-yellow-500/20">
-              <Clock size={20} className="text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Horas</p>
-              <p className="text-xl font-bold">{stats?.total_hours || 0}</p>
-            </div>
-          </div>
-        </div>
-        <div className="card p-4 bg-gradient-to-br from-cyan-500/10 to-transparent">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-cyan-500/20">
-              <HardDrive size={20} className="text-cyan-400" />
-            </div>
-            <div>
-              <p className="text-gray-500 text-xs">Total GB</p>
-              <p className="text-xl font-bold">{stats?.total_size_gb?.toFixed(0) || 0}</p>
-            </div>
-          </div>
+        <span className="text-dark-border">|</span>
+        <div className="flex items-center gap-2 text-gray-400 whitespace-nowrap">
+          <HardDrive size={16} className="text-cyan-400" />
+          <span className="font-bold text-white">{stats?.total_size_gb?.toFixed(0) || 0}</span>
+          <span className="text-sm">GB</span>
         </div>
       </div>
 
@@ -472,36 +441,6 @@ export default function Home() {
         viewAllLink="/library?sort_by=rating"
       />
 
-      {/* Quick Actions */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-        <Link to="/library" className="card p-5 hover:bg-dark-hover transition-all border-l-4 border-l-primary">
-          <div className="flex items-center gap-4">
-            <Film size={28} className="text-primary" />
-            <div>
-              <h3 className="font-bold">Explorar Biblioteca</h3>
-              <p className="text-sm text-gray-500">Navega por toda tu colección</p>
-            </div>
-          </div>
-        </Link>
-        <Link to="/actors" className="card p-5 hover:bg-dark-hover transition-all border-l-4 border-l-green-500">
-          <div className="flex items-center gap-4">
-            <Users size={28} className="text-green-500" />
-            <div>
-              <h3 className="font-bold">Ver Actores</h3>
-              <p className="text-sm text-gray-500">Descubre filmografías</p>
-            </div>
-          </div>
-        </Link>
-        <Link to="/queue" className="card p-5 hover:bg-dark-hover transition-all border-l-4 border-l-yellow-500">
-          <div className="flex items-center gap-4">
-            <Clock size={28} className="text-yellow-500" />
-            <div>
-              <h3 className="font-bold">Cola de Procesamiento</h3>
-              <p className="text-sm text-gray-500">Monitorea el análisis</p>
-            </div>
-          </div>
-        </Link>
-      </section>
     </div>
   )
 }

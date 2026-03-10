@@ -7,7 +7,6 @@ const Library = lazy(() => import('./pages/Library'))
 const MediaPlayer = lazy(() => import('./pages/MediaPlayer'))
 const Actors = lazy(() => import('./pages/Actors'))
 const ActorDetail = lazy(() => import('./pages/ActorDetail'))
-const Genres = lazy(() => import('./pages/Genres'))
 const Queue = lazy(() => import('./pages/Queue'))
 const Settings = lazy(() => import('./pages/Settings'))
 const SeriesDetail = lazy(() => import('./pages/SeriesDetail'))
@@ -35,7 +34,6 @@ function App() {
           <Route path="/documentary/:tmdbId" element={<DocumentaryDetail />} />
           <Route path="/actors" element={<Actors />} />
           <Route path="/actors/:id" element={<ActorDetail />} />
-          <Route path="/genres" element={<Genres />} />
           <Route path="/queue" element={<Queue />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
