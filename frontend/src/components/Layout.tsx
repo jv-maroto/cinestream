@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Film, Tv, Users, List, Settings, Sparkles, FileVideo, Search, Bell, X } from 'lucide-react'
+import { Home, Film, Tv, Users, List, Settings, Sparkles, FileVideo, Search, Bell, X, ChevronRight } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { queueApi } from '@/services/api'
@@ -31,24 +31,6 @@ export default function Layout({ children }: LayoutProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const mainNavItems = [
-    { path: '/', icon: Home, label: 'Inicio' },
-    { path: '/library', icon: Film, label: 'Biblioteca' },
-  ]
-
-  const categoryItems = [
-    { path: '/library?type=movie', icon: Film, label: 'Películas', color: 'text-blue-400' },
-    { path: '/library?type=series', icon: Tv, label: 'Series', color: 'text-purple-400' },
-    { path: '/library?type=anime', icon: Sparkles, label: 'Anime', color: 'text-pink-400' },
-    { path: '/library?type=documentary', icon: FileVideo, label: 'Documentales', color: 'text-green-400' },
-  ]
-
-  const secondaryNavItems = [
-    { path: '/actors', icon: Users, label: 'Actores' },
-    { path: '/queue', icon: List, label: 'Cola' },
-    { path: '/settings', icon: Settings, label: 'Ajustes' },
-  ]
-
   const isActive = (path: string) => {
     if (path.includes('?')) {
       return location.pathname + location.search === path
@@ -56,12 +38,17 @@ export default function Layout({ children }: LayoutProps) {
     return location.pathname === path && !location.search
   }
 
+  const isLibrarySection = location.pathname === '/library'
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
       navigate(`/library?search=${encodeURIComponent(searchQuery)}`)
     }
   }
+
+  const processingCount = queueStatus?.processing || 0
+  const errorCount = queueStatus?.error || 0
 
   return (
     <div className="min-h-screen bg-dark-bg">
@@ -75,7 +62,7 @@ export default function Layout({ children }: LayoutProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar películas, series, anime..."
-              className="w-full bg-dark-card border border-dark-border rounded-full pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-all"
+              className="w-full bg-dark-card border border-dark-border rounded-full pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
             />
           </div>
         </form>
@@ -89,7 +76,7 @@ export default function Layout({ children }: LayoutProps) {
               aria-label="Notificaciones"
             >
               <Bell size={20} className="text-gray-400 hover:text-white" />
-              {(queueStatus?.processing || 0) > 0 && (
+              {processingCount > 0 && (
                 <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
               )}
             </button>
@@ -103,7 +90,7 @@ export default function Layout({ children }: LayoutProps) {
                   </button>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
-                  {queueStatus?.processing > 0 ? (
+                  {processingCount > 0 ? (
                     <div className="p-4 border-b border-dark-border hover:bg-dark-hover">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -111,7 +98,7 @@ export default function Layout({ children }: LayoutProps) {
                         </div>
                         <div>
                           <p className="text-sm font-medium">Procesando archivos</p>
-                          <p className="text-xs text-gray-400">{queueStatus.processing} en cola</p>
+                          <p className="text-xs text-gray-400">{processingCount} en cola</p>
                         </div>
                       </div>
                     </div>
@@ -143,97 +130,142 @@ export default function Layout({ children }: LayoutProps) {
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 h-full w-60 bg-dark-surface border-r border-dark-border z-50 flex flex-col">
         {/* Logo */}
-        <div className="p-5 border-b border-dark-border">
+        <div className="p-5">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
               <Film size={22} className="text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">CineStream</h1>
-              <p className="text-[10px] text-gray-500">Tu cine en casa</p>
+              <h1 className="text-lg font-bold text-white tracking-tight">CineStream</h1>
+              <p className="text-[10px] text-gray-500 -mt-0.5">Tu cine en casa</p>
             </div>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
-          {/* Main Nav */}
-          <div className="space-y-1 mb-6">
-            {mainNavItems.map((item) => {
+        <nav className="flex-1 overflow-y-auto px-3 pb-4">
+          {/* Home */}
+          <div className="mb-1">
+            <Link
+              to="/"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                isActive('/')
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+              }`}
+            >
+              <Home size={20} />
+              <span className="font-medium">Inicio</span>
+            </Link>
+          </div>
+
+          {/* Biblioteca section */}
+          <div className="mb-1">
+            <Link
+              to="/library"
+              className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
+                isLibrarySection && !location.search
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Film size={20} />
+                <span className="font-medium">Biblioteca</span>
+              </div>
+              <ChevronRight size={16} className="opacity-40" />
+            </Link>
+          </div>
+
+          {/* Category quick filters */}
+          <div className="ml-4 pl-4 border-l border-dark-border/50 mb-6 space-y-0.5">
+            {[
+              { path: '/library?type=movie', icon: Film, label: 'Películas', color: 'text-blue-400', activeBg: 'bg-blue-500/10' },
+              { path: '/library?type=series', icon: Tv, label: 'Series', color: 'text-purple-400', activeBg: 'bg-purple-500/10' },
+              { path: '/library?type=anime', icon: Sparkles, label: 'Anime', color: 'text-pink-400', activeBg: 'bg-pink-500/10' },
+              { path: '/library?type=documentary', icon: FileVideo, label: 'Documentales', color: 'text-green-400', activeBg: 'bg-green-500/10' },
+            ].map((item) => {
               const Icon = item.icon
               const active = isActive(item.path)
               return (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm ${
                     active
-                      ? 'bg-primary text-white'
-                      : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+                      ? `${item.activeBg} ${item.color}`
+                      : 'text-gray-500 hover:bg-dark-hover hover:text-gray-300'
                   }`}
                 >
-                  <Icon size={20} />
-                  <span className="font-medium">{item.label}</span>
+                  <Icon size={15} className={active ? item.color : ''} />
+                  <span>{item.label}</span>
                 </Link>
               )
             })}
           </div>
 
-          {/* Categories */}
-          <div className="mb-6">
-            <p className="px-4 mb-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">Categorías</p>
-            <div className="space-y-1">
-              {categoryItems.map((item) => {
-                const Icon = item.icon
-                const active = isActive(item.path)
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
-                      active
-                        ? 'bg-dark-card text-white'
-                        : 'text-gray-400 hover:bg-dark-hover hover:text-white'
-                    }`}
-                  >
-                    <Icon size={18} className={active ? item.color : ''} />
-                    <span className="text-sm">{item.label}</span>
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
+          {/* Divider */}
+          <div className="h-px bg-dark-border/50 mx-3 mb-4" />
 
-          {/* Secondary Nav */}
-          <div>
-            <p className="px-4 mb-2 text-xs font-semibold text-gray-600 uppercase tracking-wider">Explorar</p>
-            <div className="space-y-1">
-              {secondaryNavItems.map((item) => {
-                const Icon = item.icon
-                const active = isActive(item.path)
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
-                      active
-                        ? 'bg-dark-card text-white'
-                        : 'text-gray-400 hover:bg-dark-hover hover:text-white'
-                    }`}
-                  >
-                    <Icon size={18} />
-                    <span className="text-sm">{item.label}</span>
-                  </Link>
-                )
-              })}
-            </div>
+          {/* Secondary items */}
+          <div className="space-y-0.5">
+            <Link
+              to="/actors"
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
+                location.pathname.startsWith('/actors')
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+              }`}
+            >
+              <Users size={18} />
+              <span className="text-sm">Actores</span>
+            </Link>
+
+            <Link
+              to="/queue"
+              className={`flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${
+                isActive('/queue')
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <List size={18} />
+                <span className="text-sm">Cola</span>
+              </div>
+              {processingCount > 0 && (
+                <span className="text-[10px] font-bold bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                  {processingCount}
+                </span>
+              )}
+              {errorCount > 0 && processingCount === 0 && (
+                <span className="text-[10px] font-bold bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">
+                  {errorCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              to="/settings"
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all ${
+                isActive('/settings')
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-400 hover:bg-dark-hover hover:text-white'
+              }`}
+            >
+              <Settings size={18} />
+              <span className="text-sm">Ajustes</span>
+            </Link>
           </div>
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-dark-border">
-          <div className="bg-dark-card rounded-xl p-3 text-center">
-            <p className="text-[10px] text-gray-500">Powered by TMDB & AI</p>
+        <div className="p-3">
+          <div className="rounded-xl bg-dark-card/50 px-4 py-3">
+            <div className="flex items-center justify-between text-[11px] text-gray-600">
+              <span>TMDB + AI</span>
+              <span>v1.0</span>
+            </div>
           </div>
         </div>
       </aside>
