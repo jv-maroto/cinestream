@@ -3,8 +3,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
 import { mediaApi, genresApi, seriesApi, animeApi, documentariesApi } from '@/services/api'
 import { Search, Scan, Film, Tv, Grid, List, Play, Star, Sparkles, FileVideo, X, SlidersHorizontal } from 'lucide-react'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8010'
+import { getImageUrl } from '@/utils/imageUrl'
 
 interface MediaFilters {
   page: number
@@ -200,12 +199,6 @@ export default function Library() {
       refetch()
     }
   })
-
-  const getThumbnailUrl = (path: string | null) => {
-    if (!path) return null
-    if (path.startsWith('http')) return path
-    return `${API_URL}${path}`
-  }
 
   const handleScan = async () => {
     scanMutation.mutate()
@@ -515,7 +508,7 @@ export default function Library() {
               <div className="media-card relative aspect-[2/3] glow-hover">
                 {item.poster_path ? (
                   <img
-                    src={getThumbnailUrl(item.poster_path) || undefined}
+                    src={getImageUrl(item.poster_path) || undefined}
                     alt={item.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -608,7 +601,7 @@ export default function Library() {
               <div className="w-16 h-24 rounded-lg overflow-hidden bg-dark-hover flex-shrink-0">
                 {item.poster_path ? (
                   <img
-                    src={getThumbnailUrl(item.poster_path) || undefined}
+                    src={getImageUrl(item.poster_path) || undefined}
                     alt={item.title}
                     className="w-full h-full object-cover"
                   />

@@ -1,14 +1,14 @@
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { mediaApi, watchHistoryApi } from '@/services/api'
+import { API_URL } from '@/services/api'
 import {
   RefreshCw, Star, Calendar, Clock, Film, Tv, ExternalLink,
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   SkipBack, SkipForward, Settings, RotateCcw
 } from 'lucide-react'
 import { useEffect, useRef, useState, useCallback } from 'react'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8010'
+import { getImageUrl } from '@/utils/imageUrl'
 
 export default function MediaPlayer() {
   const { id } = useParams<{ id: string }>()
@@ -340,12 +340,6 @@ export default function MediaPlayer() {
     if (window.confirm('¿Volver a buscar información de TMDB para este título?')) {
       reanalyzeMutation.mutate(Number(id))
     }
-  }
-
-  const getImageUrl = (path: string | null) => {
-    if (!path) return null
-    if (path.startsWith('http')) return path
-    return `${API_URL}${path}`
   }
 
   const formatRuntime = (minutes: number | null) => {
@@ -728,7 +722,6 @@ export default function MediaPlayer() {
                                 setUseTranscode(!useTranscode)
                                 // Reload video with new source
                                 if (videoRef.current) {
-                                  const currentPos = videoRef.current.currentTime
                                   videoRef.current.load()
                                   videoRef.current.currentTime = 0
                                 }

@@ -1,8 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { Settings as SettingsIcon, Database, Film, RefreshCw, Sparkles, HardDrive, Key, ExternalLink, CheckCircle, AlertCircle, Info } from 'lucide-react'
 import { mediaApi } from '@/services/api'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8010'
+import { API_URL } from '@/utils/imageUrl'
 
 export default function Settings() {
 

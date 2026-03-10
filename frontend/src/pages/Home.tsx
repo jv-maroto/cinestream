@@ -2,9 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { statsApi, mediaApi, seriesApi, animeApi, watchHistoryApi } from '@/services/api'
 import { Film, Tv, Users, Clock, Play, Star, ChevronLeft, ChevronRight, Sparkles, FileVideo, HardDrive, RotateCcw, Info, Plus } from 'lucide-react'
-import { useRef, useState, useEffect } from 'react'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8010'
+import { useRef, useState, useEffect, useCallback } from 'react'
+import { getImageUrl } from '@/utils/imageUrl'
 
 // Continue Watching Row
 function ContinueWatchingRow({ items }: { items: any[] }) {
@@ -12,13 +11,13 @@ function ContinueWatchingRow({ items }: { items: any[] }) {
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
 
-  const checkScroll = () => {
+  const checkScroll = useCallback(() => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
       setCanScrollLeft(scrollLeft > 0)
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const ref = scrollRef.current
@@ -27,19 +26,13 @@ function ContinueWatchingRow({ items }: { items: any[] }) {
       checkScroll()
     }
     return () => ref?.removeEventListener('scroll', checkScroll)
-  }, [items])
+  }, [items, checkScroll])
 
   const scroll = (dir: 'left' | 'right') => {
     if (scrollRef.current) {
       const amount = dir === 'left' ? -400 : 400
       scrollRef.current.scrollBy({ left: amount, behavior: 'smooth' })
     }
-  }
-
-  const getImageUrl = (path: string | null) => {
-    if (!path) return null
-    if (path.startsWith('http')) return path
-    return `${API_URL}${path}`
   }
 
   if (!items?.length) return null
@@ -128,13 +121,13 @@ function MediaRow({ title, icon, items, viewAllLink }: {
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
 
-  const checkScroll = () => {
+  const checkScroll = useCallback(() => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current
       setCanScrollLeft(scrollLeft > 0)
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const ref = scrollRef.current
@@ -143,19 +136,13 @@ function MediaRow({ title, icon, items, viewAllLink }: {
       checkScroll()
     }
     return () => ref?.removeEventListener('scroll', checkScroll)
-  }, [items])
+  }, [items, checkScroll])
 
   const scroll = (dir: 'left' | 'right') => {
     if (scrollRef.current) {
       const amount = dir === 'left' ? -400 : 400
       scrollRef.current.scrollBy({ left: amount, behavior: 'smooth' })
     }
-  }
-
-  const getImageUrl = (path: string | null) => {
-    if (!path) return null
-    if (path.startsWith('http')) return path
-    return `${API_URL}${path}`
   }
 
   if (!items?.length) return null
@@ -283,12 +270,6 @@ function MediaRow({ title, icon, items, viewAllLink }: {
 
 // Hero Section
 function HeroSection({ item }: { item: any }) {
-  const getImageUrl = (path: string | null) => {
-    if (!path) return null
-    if (path.startsWith('http')) return path
-    return `${API_URL}${path}`
-  }
-
   if (!item) return null
 
   return (

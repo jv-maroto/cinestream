@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Home, Film, Tv, Users, Tag, List, Settings, Sparkles, FileVideo, Search, Bell, X } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
+  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [showNotifications, setShowNotifications] = useState(false)
   const notificationRef = useRef<HTMLDivElement>(null)
@@ -59,7 +60,7 @@ export default function Layout({ children }: LayoutProps) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      window.location.href = `/library?search=${encodeURIComponent(searchQuery)}`
+      navigate(`/library?search=${encodeURIComponent(searchQuery)}`)
     }
   }
 
@@ -86,6 +87,7 @@ export default function Layout({ children }: LayoutProps) {
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 hover:bg-dark-hover rounded-full transition-colors"
+              aria-label="Notificaciones"
             >
               <Bell size={20} className="text-gray-400 hover:text-white" />
               {(queueStatus?.processing || 0) > 0 && (

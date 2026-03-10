@@ -12,5 +12,10 @@ export default defineConfig({
   server: {
     port: 3001,
     host: true,
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'X-XSS-Protection': '1; mode=block',
+    },
   },
 })

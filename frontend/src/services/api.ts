@@ -1,10 +1,33 @@
 import axios from 'axios'
+import { getMockResponse } from './mockData'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8010'
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 10000,
 })
+
+// When backend is unavailable, fall back to mock data (dev only)
+if (import.meta.env.DEV) {
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || !error.response) {
+        const method = (error.config?.method || 'get').toUpperCase()
+        const url = error.config?.url || ''
+        const params = error.config?.params
+
+        const mockData = getMockResponse(method, url, params)
+        if (mockData !== null) {
+          console.log(`[Mock] ${method} ${url}`, mockData)
+          return { data: mockData, status: 200, statusText: 'OK (Mock)', headers: {}, config: error.config }
+        }
+      }
+      return Promise.reject(error)
+    }
+  )
+}
 
 export const mediaApi = {
   getAll: (params?: any) => api.get('/api/media', { params }),

@@ -2,8 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { documentariesApi } from '@/services/api'
 import { Play, Star, Clock, Calendar, FileVideo } from 'lucide-react'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8010'
+import { getImageUrl } from '@/utils/imageUrl'
 
 export default function DocumentaryDetail() {
   const { tmdbId } = useParams<{ tmdbId: string }>()
@@ -13,12 +12,6 @@ export default function DocumentaryDetail() {
     queryFn: () => documentariesApi.getByTmdb(Number(tmdbId)).then((res) => res.data),
     enabled: !!tmdbId,
   })
-
-  const getImageUrl = (path: string | null) => {
-    if (!path) return null
-    if (path.startsWith('http')) return path
-    return `${API_URL}${path}`
-  }
 
   const formatDuration = (seconds: number | null) => {
     if (!seconds) return 'N/A'

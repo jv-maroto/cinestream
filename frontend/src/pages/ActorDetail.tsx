@@ -2,8 +2,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { actorsApi } from '@/services/api'
 import { Calendar, MapPin, Film, ExternalLink } from 'lucide-react'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8010'
+import { getImageUrl } from '@/utils/imageUrl'
 
 export default function ActorDetail() {
   const { id } = useParams<{ id: string }>()
@@ -13,12 +12,6 @@ export default function ActorDetail() {
     queryFn: () => actorsApi.getById(Number(id)).then((res) => res.data),
     enabled: !!id,
   })
-
-  const getImageUrl = (path: string | null) => {
-    if (!path) return null
-    if (path.startsWith('http')) return path
-    return `${API_URL}${path}`
-  }
 
   if (isLoading) {
     return <div className="text-center py-12">Cargando...</div>
